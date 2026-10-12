@@ -11,3 +11,14 @@ vendor/
 __pycache__/
 .toolchain/
 build-cia-log.txt
+*.iso
+*.wbfs
+*.rvz
+*.cia
+*.3ds
+build/
+data/
+sd-card/
+node_modules/
+.venv/
+.toolchain/

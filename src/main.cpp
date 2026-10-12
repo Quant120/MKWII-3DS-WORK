@@ -24,6 +24,7 @@
 #include <mkw/star_power.hpp>
 #include <mkw/job_worker.hpp>
 #include <mkw/render_quality.hpp>
+#include <mkw/auto_frameskip.hpp>
 #include <mkw/racer_visuals.hpp>
 #include <mkw/race_hud.hpp>
 #include <mkw/race_bottom_screen.hpp>
@@ -1082,6 +1083,7 @@ int main() {
     }
     std::vector<mkw::UiQuad> raceQuads;
     mkw::PresentationCadence presentation;
+    mkw::AutoFrameskip autoFrameskip;
     // Simulation stays at 60 Hz on every model. Old 3DS presents races at
     // 30 FPS. New 3DS and New 2DS XL present at 60, or at 30 while the 3D
     // slider is up (stereo draws every frame twice).
@@ -1184,7 +1186,7 @@ int main() {
                     if(!trackLoadFailed){startIntro();beginRaceSound();}
                     raceResident=true;menu.raceStarted();uiRace={};
                 }
-                accumulator=0;previous=svcGetSystemTick();lastRefresh=C3D_FrameCounter(0);presentation.reset();continue;
+                accumulator=0;previous=svcGetSystemTick();lastRefresh=C3D_FrameCounter(0);presentation.reset();autoFrameskip.reset();continue;
             }
         }else if(down&KEY_START)break;
         auto now=svcGetSystemTick();double delta=double(now-previous)/SYSCLOCK_ARM11;previous=now;
@@ -1743,7 +1745,10 @@ int main() {
             if(fullRace){
                 // The 3D slider can move mid-race: the rate follows it.
                 if(const unsigned ticks=raceTicksPerFrame();ticks!=presentation.ticksPerSlot())presentation.setTicksPerSlot(ticks);
-                if(!presentation.due(physicsSteps)){profiler->end(physicsSteps,renderer,false);continue;}
+                autoFrameskip.observe(refreshes,accumulator);
+                if(!presentation.due(physicsSteps)||(!new3ds&&!raceCapture&&!autoplay&&autoFrameskip.drop())){
+                    profiler->end(physicsSteps,renderer,false);continue;
+                }
             }
             renderer.frameSync=!fullRace;
             auto* camera=K::Render::KartCamera::Instance();auto* cameraKart=K::Kart::KartObjectManager::Instance()->object(0);
